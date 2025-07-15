@@ -107,7 +107,7 @@ const UsersMap = () => {
     fetchPath();
   }, [user]);
 
-  // console.log(pathPoints)
+  console.log(pathPoints)
 
   const distance = user?.coords
     ? getDistance(
