@@ -4,30 +4,34 @@ import { auth, db } from "../services/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
 import { BiShow, BiHide } from "react-icons/bi";
-import bg from "../assets/back.jpg"
+import bg from "../assets/back.jpg";
 import { useNavigate } from "react-router-dom";
 
 const Register = () => {
-
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [loading , setLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setError,
-    reset
+    reset,
   } = useForm();
 
   const onSubmit = async (data) => {
+    setLoading(true);
     const { email, password, name, jobType } = data;
-
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
 
       await setDoc(doc(db, "users", user.uid), {
@@ -35,14 +39,13 @@ const Register = () => {
         email: user.email,
         name: name,
         jobType: jobType,
-        role: "employee", 
+        role: "employee",
         createdAt: new Date(),
       });
 
       toast.success("User registered successfully!");
       reset();
-      navigate('/login')
-
+      navigate("/login");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         setError("email", {
@@ -59,22 +62,27 @@ const Register = () => {
       } else {
         toast.error(error.message);
       }
+      
+    }finally{
+      setLoading(false);
     }
   };
 
   return (
-    <div 
-      className="d-flex justify-content-center align-items-center vh-100 px-2 px-sm-0" 
-      style={{ 
-        backgroundImage : `url(${bg})`,
-        backgroundPosition : 'center',
-        backgroundSize : "cover"
-       }}
+    <div
+      className="d-flex justify-content-center align-items-center vh-100 px-2 px-sm-0"
+      style={{
+        backgroundImage: `url(${bg})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }}
     >
-      <div className="border p-4 rounded-3 shadow-lg" style={{ maxWidth: "450px", width: "100%" , backgroundColor : "white"}}>
+      <div
+        className="border p-4 rounded-3 shadow-lg"
+        style={{ maxWidth: "450px", width: "100%", backgroundColor: "white" }}
+      >
         <h3 className="mb-4 text-center">Register</h3>
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
-
           {/* Name */}
           <div className="mb-3">
             <label>User Name</label>
@@ -172,7 +180,17 @@ const Register = () => {
           </div>
 
           <button type="submit" className="btn btn-primary w-100">
-            Register
+            {loading ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                />
+                Registering...
+              </>
+            ) : (
+              "Register"
+            )}
           </button>
         </form>
 

@@ -18,6 +18,7 @@ const Login = () => {
   const { setUserDet } = useStoreContext();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [loading , setLoading] = useState(false);
 
   const {
     register,
@@ -28,6 +29,7 @@ const Login = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
+    setLoading(true);
     try {
       const { email, password } = data;
       const { user } = await signInWithEmailAndPassword(auth, email, password);
@@ -59,6 +61,8 @@ const Login = () => {
       } else {
         toast.error("Something went wrong");
       }
+    }finally{
+      setLoading(false);
     }
   };
 
@@ -133,7 +137,17 @@ const Login = () => {
           </div>
 
           <button type="submit" className="btn btn-primary w-100">
-            Login
+               {loading ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                />
+                please wait...
+              </>
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
         
@@ -144,7 +158,7 @@ const Login = () => {
           className="btn btn-outline-dark w-100 mb-2 d-flex align-items-center justify-content-center gap-2"
           onClick={() => handleGoogleLogin({setUserDet , navigate})}
         >
-          <FaGoogle /> Sign in with Google
+          <FaGoogle color="red"/> Sign in with Google
         </button>
 
         <button
