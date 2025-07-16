@@ -64,7 +64,7 @@ const Login = () => {
 
   return (
     <div
-      className="d-flex justify-content-center align-items-center vh-100"
+      className="d-flex justify-content-center align-items-center vh-100 px-2 px-sm-0"
       style={{
         backgroundImage: `url(${background})`,
         backgroundSize: "cover",
