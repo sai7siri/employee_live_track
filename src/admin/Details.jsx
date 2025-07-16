@@ -2,6 +2,9 @@
 import { useEffect } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import {db} from "../services/firebase";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+
 import "./admin.css";
 
 const Details = ({
@@ -23,27 +26,41 @@ const Details = ({
 
   const isSearchResultOnly = selectedUser && users.length === 0;
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    doc.text(`Check-In Users for ${date}`, 14, 15);
+  const handleDownloadPDF = async () => {
+  const doc = new jsPDF();
+  doc.text(`Check-In Users for ${date}`, 14, 15);
 
-    const tableData = (isSearchResultOnly ? [selectedUser] : users).map((user, idx) => [
-      idx + 1,
-      user.name,
-      user.email,
-      new Date(user.checkInTime).toLocaleTimeString(),
-      user.checkOutTime ? new Date(user.checkOutTime).toLocaleTimeString() : "--"
-    ]);
+  try {
+    const q = query(
+      collection(db, "usersCheckins"),
+      where("date", "==", date),
+      orderBy("checkInTime", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+
+    const allUsers = snapshot.docs.map((docSnap, idx) => {
+      const data = docSnap.data();
+      return [
+        idx + 1,
+        data.name,
+        data.email,
+        new Date(data.checkInTime).toLocaleTimeString(),
+        data.checkOutTime ? new Date(data.checkOutTime).toLocaleTimeString() : "--",
+      ];
+    });
 
     autoTable(doc, {
       startY: 20,
       head: [["S.No", "Name", "Email", "Check-In", "Check-Out"]],
-      body: tableData
+      body: allUsers,
     });
 
     doc.save(`CheckIn_Users_${date}.pdf`);
-  };
-
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+  }
+};
 
   return (
     <>

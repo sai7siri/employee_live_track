@@ -44,10 +44,10 @@ const LiveMap = () => {
     html: `<div style="
       width: 4px; 
       height: 40px; 
-      background: #007bff; 
+      background: #00050aff; 
       margin-left: 10px; 
       border-radius: 2px;
-      box-shadow: 0 0 6px #007bff;
+      box-shadow: 0 0 6px #e75b24ff;
     "></div>`,
     iconSize: [14, 40],
     iconAnchor: [7, 40],
@@ -88,10 +88,10 @@ const LiveMap = () => {
         {/* Office Circle */}
         <Circle
           center={OFFICE_LOCATION}
-          radius={40}
+          radius={150}
           pathOptions={{
             color: "#007bff",
-            fillColor: "#cce5ff",
+            fillColor: "#80bdffff",
             fillOpacity: 0.3,
           }}
         />

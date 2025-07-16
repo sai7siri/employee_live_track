@@ -175,6 +175,14 @@ const Register = () => {
             Register
           </button>
         </form>
+
+        <button
+          className="btn btn-link w-100"
+          style={{ textDecoration: "none" }}
+          onClick={() => navigate("/login")}
+        >
+          You have an account? Login
+        </button>
       </div>
     </div>
   );

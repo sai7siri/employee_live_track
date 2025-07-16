@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   collection,
   query,
@@ -8,11 +8,13 @@ import {
   getDocs,
   startAfter,
   getCountFromServer,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
 import "./admin.css";
 import Details from "./Details";
 import { useStoreContext } from "../store/ContextStore";
+import { toast } from "react-toastify";
 
 const getTodayDateString = () => {
   const today = new Date();
@@ -26,6 +28,9 @@ const pageSize = 5;
 
 const UsersInfo = () => {
   const { users, setUsers, selectedUser, setSelectedUser } = useStoreContext();
+  const prevDataRef = useRef({});
+  const [unsubscribeListener, setUnsubscribeListener] = useState(null);
+
 
   const [date, setDate] = useState(getTodayDateString());
   const [nameInput, setNameInput] = useState("");
@@ -36,43 +41,91 @@ const UsersInfo = () => {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchUsersByDate = async (selectedDate, startAfterDoc = null) => {
-    try {
-      let baseQuery = query(
-        collection(db, "usersCheckins"),
-        where("date", "==", selectedDate),
-        orderBy("name"),
-        limit(pageSize)
-      );
+ const fetchUsersByDate = async (selectedDate, startAfterDoc = null, realTime = true) => {
+  if (unsubscribeListener) {
+    unsubscribeListener(); // Clear previous listener
+    setUnsubscribeListener(null);
+  }
 
-      if (startAfterDoc) {
-        baseQuery = query(baseQuery, startAfter(startAfterDoc));
-      }
+  let baseQuery = query(
+    collection(db, "usersCheckins"),
+    where("date", "==", selectedDate),
+    orderBy("checkInTime", "desc"),
+    limit(pageSize)
+  );
 
-      const snapshot = await getDocs(baseQuery);
+  if (startAfterDoc) {
+    baseQuery = query(baseQuery, startAfter(startAfterDoc));
+  }
+
+  // If today and first page => use real-time updates
+  const isToday = selectedDate === getTodayDateString();
+  if (realTime && isToday && !startAfterDoc) {
+    const unsubscribe = onSnapshot(baseQuery, async (snapshot) => {
       const fetchedUsers = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
+      // ✅ Toast Check
+      fetchedUsers.forEach((user) => {
+        const prev = prevDataRef.current[user.id];
+        const now = user;
+
+        if (!prev && !now.isCheckedOut) {
+          toast.success(`${now.name} just checked in at ${new Date(now.checkInTime).toLocaleTimeString()}`);
+        }
+
+        if (prev && !prev.isCheckedOut && now.isCheckedOut) {
+          toast.info(`${now.name} just checked out at ${new Date(now.checkOutTime).toLocaleTimeString()}`);
+        }
+      });
+
+      const updatedMap = {};
+      fetchedUsers.forEach((u) => {
+        updatedMap[u.id] = u;
+      });
+      prevDataRef.current = updatedMap;
+
       setUsers(fetchedUsers);
-      if (!selectedUser) {
-        setSelectedUser(fetchedUsers[0] || null);
+      if (!selectedUser && fetchedUsers.length > 0) {
+        setSelectedUser(fetchedUsers[0]);
       }
+
       setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
 
-      const countQuery = query(
-        collection(db, "usersCheckins"),
-        where("date", "==", selectedDate)
+      const countSnap = await getCountFromServer(
+        query(collection(db, "usersCheckins"), where("date", "==", selectedDate))
       );
-      const countSnap = await getCountFromServer(countQuery);
       setTotalCount(countSnap.data().count);
+      setPage(1);
+    });
 
-      if (!startAfterDoc) setPage(1);
-    } catch (error) {
-      console.error("Error fetching users by date:", error);
-    }
-  };
+    setUnsubscribeListener(() => unsubscribe);
+    return;
+  }
+
+  // Else use normal getDocs (non-realtime)
+  const snapshot = await getDocs(baseQuery);
+  const fetchedUsers = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  setUsers(fetchedUsers);
+  if (!selectedUser && fetchedUsers.length > 0) {
+    setSelectedUser(fetchedUsers[0]);
+  }
+
+  setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
+
+  const countSnap = await getCountFromServer(
+    query(collection(db, "usersCheckins"), where("date", "==", selectedDate))
+  );
+  setTotalCount(countSnap.data().count);
+  if (!startAfterDoc) setPage(1);
+};
+
 
   const fetchUserByName = async (selectedDate, userName) => {
     try {
@@ -122,7 +175,7 @@ const UsersInfo = () => {
     };
 
     fetchNames();
-  }, [nameInput, date]);
+  }, [nameInput, date , ]);
 
   useEffect(() => {
     if (date) {
@@ -131,6 +184,12 @@ const UsersInfo = () => {
       setSelectedUser(null);
     }
   }, [date]);
+
+  useEffect( ()=>{
+    if(unsubscribeListener){
+      unsubscribeListener();
+    }
+  } , [unsubscribeListener])
 
   const handleNameSelect = (name) => {
     setNameInput(name);
@@ -141,14 +200,14 @@ const UsersInfo = () => {
 
   const handleNext = () => {
     if (lastDoc) {
-      fetchUsersByDate(date, lastDoc);
+      fetchUsersByDate(date, lastDoc , false);
       setPage((p) => p + 1);
     }
   };
 
   const handlePrev = () => {
     if (page > 1) {
-      fetchUsersByDate(date);
+      fetchUsersByDate(date , null , false);
       setPage((p) => p - 1);
     }
   };
@@ -165,7 +224,7 @@ const UsersInfo = () => {
 
   const handleReset = () => {
     setNameInput("");
-    fetchUsersByDate(date);
+    fetchUsersByDate(date , null , false);
     setSelectedUser(null);
   };
 
@@ -236,7 +295,6 @@ const UsersInfo = () => {
         handleNext={handleNext}
         handlePrev={handlePrev}
         date={date}
-        // handleDownloadPDF={handleDownloadPDF}
         />
     </div>
         </div>

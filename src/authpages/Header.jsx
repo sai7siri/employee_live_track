@@ -17,6 +17,7 @@ const Header = () => {
         localStorage.removeItem("user-coords");
         localStorage.removeItem("checkInTime");
         localStorage.removeItem("checkOutTime");
+        localStorage.removeItem("watchId")
       }
 
       localStorage.removeItem("user-data");

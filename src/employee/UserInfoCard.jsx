@@ -103,6 +103,7 @@ const UserInfoCard = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+
         const freshDistance = getDistanceMeters(
           latitude,
           longitude,
@@ -113,8 +114,6 @@ const UserInfoCard = () => {
         setCoords({ lat: latitude, lng: longitude });
         setDistance(freshDistance);
 
-        console.log(coords);
-
         if (freshDistance > 100) {
           setError("You are too far from the office to check in.");
           setLoading(false);
@@ -123,9 +122,10 @@ const UserInfoCard = () => {
 
         const now = new Date().toISOString();
         const date = now.slice(0, 10);
+        const docId = `${userData.uid}_${date}`;
 
         try {
-          await setDoc(doc(db, "usersCheckins", `${userData.uid}_${date}`), {
+          await setDoc(doc(db, "usersCheckins", docId), {
             uid: userData.uid,
             name: userData.name,
             email: userData.email,
@@ -140,30 +140,30 @@ const UserInfoCard = () => {
             updatedAt: serverTimestamp(),
           });
 
-          // live tracking
+          // Start live tracking
           const watchId = navigator.geolocation.watchPosition(
             async (pos) => {
               const { latitude, longitude } = pos.coords;
               const timestamp = new Date().toISOString();
 
-              const logref = doc(
+              const logRef = doc(
                 db,
                 "usersCheckins",
-                `${userData.uid}_${date}`,
+                docId,
                 "locationLogs",
                 timestamp
               );
 
-              await setDoc(logref, {
+              await setDoc(logRef, {
                 lat: latitude,
                 lng: longitude,
                 recordedAt: serverTimestamp(),
               });
 
-              console.log("track liveposion", timestamp);
+              console.log("Tracking live position:", timestamp);
             },
             (err) => {
-              console.error("watchposition error", err);
+              console.error("watchPosition error", err);
             },
             {
               enableHighAccuracy: true,
@@ -172,14 +172,10 @@ const UserInfoCard = () => {
             }
           );
 
-          localStorage.setItem("watchId" , watchId)
-
-          //  Update local state
-          setCheckInTime(now);
+          localStorage.setItem("watchId", watchId);
           localStorage.setItem("checkInTime", now);
+          setCheckInTime(now);
           setStatus("checkedIn");
-
-
         } catch (firestoreError) {
           console.error("Firestore error during check-in:", firestoreError);
           setError("Check-in failed due to server error. Try again.");
@@ -196,6 +192,7 @@ const UserInfoCard = () => {
     );
   };
 
+ 
   const handleCheckOut = async () => {
     setLoading(true);
     setError(null);
@@ -214,10 +211,10 @@ const UserInfoCard = () => {
       });
 
       // stop the user tracking
-      const watchId = localStorage.getItem("whatchId");
-      if(watchId){
+      const watchId = localStorage.removeItem("whatchId");
+      if (watchId) {
         navigator.geolocation.clearWatch(Number(watchId));
-        localStorage.removeItem("watchId")
+        localStorage.removeItem("watchId");
       }
 
       setCheckOutTime(now);

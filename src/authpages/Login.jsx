@@ -10,6 +10,8 @@ import background from "../assets/back.jpg";
 import { BiShow, BiHide } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
 import { useStoreContext } from "../store/ContextStore";
+import { handleGoogleLogin } from "./googleLogin";
+import { FaGoogle } from "react-icons/fa";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -40,7 +42,6 @@ const Login = () => {
         localStorage.setItem("user-data", JSON.stringify(userData));
         setUserDet(userData); // ✅ Update context
         reset();
-        // navigate("/userdash");
       } else {
         toast.error("User document not found in Firestore.");
         console.warn("No document found for UID:", user.uid);
@@ -135,6 +136,25 @@ const Login = () => {
             Login
           </button>
         </form>
+        
+          <div className="mt-3" />
+
+        <button
+          type="button"
+          className="btn btn-outline-dark w-100 mb-2 d-flex align-items-center justify-content-center gap-2"
+          onClick={() => handleGoogleLogin({setUserDet , navigate})}
+        >
+          <FaGoogle /> Sign in with Google
+        </button>
+
+        <button
+          className="btn btn-link w-100"
+          style={{ textDecoration: "none" }}
+          onClick={() => navigate("/register")}
+        >
+          Don’t have an account? Register
+        </button>
+        
       </div>
     </div>
   );

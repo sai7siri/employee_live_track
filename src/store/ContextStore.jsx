@@ -6,9 +6,10 @@ export const useStoreContext = () => {
   return useContext(ContextData);
 };
 
-const OFFICE_LOCATION = { lat: 17.4360918 , lng:  78.4476179 }; //office exact
+const OFFICE_LOCATION = { lat: 17.43542607635663, lng: 78.45767098743461,};   // exact office location
 
-// const OFFICE_LOCATION = { lat: 17.4318288, lng: 78.4638163 };
+// const OFFICE_LOCATION = { lat: 17.4359 , lng:  78.4564 }; 
+
 
 const ContextStore = ({ children }) => {
   const [userDet, setUserDet] = useState(() => {

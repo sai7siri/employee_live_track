@@ -20,7 +20,7 @@ const officeIcon = L.divIcon({
   html: `<div style="
     width: 4px;
     height: 40px;
-    background: #a70000ff;
+    background: #001816ff;
     border-radius: 2px;
     box-shadow: 0 0 6px #ca0000ff;"></div>`,
   iconSize: [10, 40],
@@ -47,30 +47,6 @@ const getDistance = (lat1, lng1, lat2, lng2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-// Generate footsteps every 10m (up to max 100m)
-const generateFootsteps = (start, end, totalDistance) => {
-  const steps = [];
-  const stepGap = 9; // meters between steps
-  const maxDistance = 100;
-
-  const deltaLat = end.lat - start.lat;
-  const deltaLng = end.lng - start.lng;
-  const angle = (Math.atan2(deltaLng, deltaLat) * 180) / Math.PI;
-
-  const stepCount = Math.min(
-    Math.floor(maxDistance / stepGap),
-    Math.floor(totalDistance / stepGap)
-  );
-
-  for (let i = 1; i <= stepCount; i++) {
-    const ratio = (i * stepGap) / totalDistance;
-    const lat = start.lat + deltaLat * ratio;
-    const lng = start.lng + deltaLng * ratio;
-    steps.push({ lat, lng, angle });
-  }
-
-  return steps;
-};
 
 // Map Fly Helper
 const MapFlyTo = ({ coords }) => {
@@ -88,12 +64,14 @@ const UsersMap = () => {
 
   const user = selectedUser || users[0];
 
+  console.log(user);
+
   useEffect(() => {
     const fetchPath = async () => {
       if (!user?.id) return;
       const logRef = collection(db, "usersCheckins", user.id, "locationLogs");
 
-      const q = query(logRef, orderBy("timestamp"));
+      const q = query(logRef, orderBy("recordedAt"));
 
       const snapshot = await getDocs(q);
 
@@ -107,7 +85,7 @@ const UsersMap = () => {
     fetchPath();
   }, [user]);
 
-  console.log(pathPoints)
+  console.log(pathPoints);
 
   const distance = user?.coords
     ? getDistance(
@@ -154,29 +132,31 @@ const UsersMap = () => {
         {/* Office 100m Circle */}
         <Circle
           center={OFFICE_LOCATION}
-          radius={125}
+          radius={250}
           pathOptions={{
             color: "#007bff",
-            fillColor: "#cce5ff",
+            fillColor: "#4e8bccff",
             fillOpacity: 0.3,
           }}
         />
 
         {/* User Marker */}
-        <Marker position={user.coords} icon={userIcon}>
-          <Popup>
-            Employee : <strong>{user.name}</strong>
-            <br />
-            Distance: {Math.round(distance)} meters
-          </Popup>
-        </Marker>
+        {pathPoints.length > 0 && (
+          <Marker position={pathPoints[pathPoints.length - 1]} icon={userIcon}>
+            <Popup>
+              Employee : <strong>{user.name}</strong>
+              <br />
+              Distance: {Math.round(distance)} meters
+            </Popup>
+          </Marker>
+        )}
 
         {/* Footstep Polyline from office to 100m point (optional dotted line) */}
         {pathPoints.length > 1 && (
           <Polyline
             positions={pathPoints}
             pathOptions={{
-              color: "#030303ff",
+              color: "#ee0000ff",
               weight: 3,
               dashArray: "4 9",
               opacity: 0.8,
